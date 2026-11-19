@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Minus, Plus, RefreshCw, ShieldCheck, Star, Truck, X } from 'lucide-react';
+import {
+  CalendarSync,
+  Minus,
+  PackageCheck,
+  Plus,
+  ShieldCheck,
+  Star,
+  Truck,
+  X,
+} from 'lucide-react';
 import {
   formatSGD,
+  getRecommendedCadence,
   ProductReview,
   SupplementProduct,
 } from '../data/supplements';
@@ -11,6 +21,7 @@ import { ResilientImage } from './ResilientImage';
 interface ProductDetailModalProps {
   product: SupplementProduct | null;
   cartItems: CartItem[];
+  subscribedCadence?: string;
   onClose: () => void;
   onAddToCart: (
     product: SupplementProduct,
@@ -18,7 +29,11 @@ interface ProductDetailModalProps {
     quantity: number
   ) => void;
   onUpdateQty: (productId: string, variantId: string, delta: number) => void;
-  onSubscribe: (product: SupplementProduct, variantId: string) => void;
+  onSubscribe: (
+    product: SupplementProduct,
+    variantId: string,
+    cadence: string
+  ) => void;
   customReviews: Record<string, ProductReview[]>;
   onAddReview: (productId: string, review: ProductReview) => void;
 }
@@ -26,6 +41,7 @@ interface ProductDetailModalProps {
 export function ProductDetailModal({
   product,
   cartItems,
+  subscribedCadence,
   onClose,
   onAddToCart,
   onUpdateQty,
@@ -34,6 +50,7 @@ export function ProductDetailModal({
   onAddReview,
 }: ProductDetailModalProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string>('');
+  const [selectedCadence, setSelectedCadence] = useState<string>('Every 30 days');
   const [activeTab, setActiveTab] = useState<'facts' | 'usage' | 'reviews'>('facts');
 
   // Review composer state
@@ -45,11 +62,15 @@ export function ProductDetailModal({
 
   useEffect(() => {
     if (product) {
-      setSelectedVariantId(product.variants[0].id);
+      const firstVariant = product.variants[0];
+      setSelectedVariantId(firstVariant.id);
+      setSelectedCadence(
+        subscribedCadence || getRecommendedCadence(firstVariant.servings)
+      );
       setActiveTab('facts');
       setShowReviewForm(false);
     }
-  }, [product]);
+  }, [product, subscribedCadence]);
 
   useEffect(() => {
     if (!product) return;
@@ -225,7 +246,12 @@ export function ProductDetailModal({
                       <button
                         key={v.id}
                         type="button"
-                        onClick={() => setSelectedVariantId(v.id)}
+                        onClick={() => {
+                          setSelectedVariantId(v.id);
+                          if (!subscribedCadence) {
+                            setSelectedCadence(getRecommendedCadence(v.servings));
+                          }
+                        }}
                         className={`px-3.5 py-2 min-h-[40px] rounded-lg border text-xs font-medium transition-colors ${
                           selected
                             ? 'border-[#3D7700] bg-[#EDF3E8] text-[#234300]'
@@ -287,23 +313,57 @@ export function ProductDetailModal({
                 )}
 
                 {/* Replicated Subscribe & Save Row */}
-                <div className="mt-3 pt-3 border-t border-[#ECEFE9] flex items-center justify-between gap-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-display text-lg font-extrabold text-[#DC2626] tabular-nums">
-                      {formatSGD(variant.priceSGD * 0.9)}
-                    </span>
-                    <span className="text-xs font-semibold text-[#78837A] tabular-nums">
-                      (10%)
-                    </span>
+                <div className="mt-3 pt-3 border-t border-[#ECEFE9] space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display text-lg font-extrabold text-[#DC2626] tabular-nums">
+                        {formatSGD(variant.priceSGD * 0.9)}
+                      </span>
+                      <span className="text-xs font-semibold text-[#78837A] tabular-nums">
+                        (10%)
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        aria-label="Auto-refill frequency"
+                        value={selectedCadence}
+                        onChange={(e) => setSelectedCadence(e.target.value)}
+                        className="min-h-[42px] px-3 py-2 rounded-lg border border-[#D4DBD0] bg-[#FAFBF9] text-xs font-medium text-[#1C241E] focus:outline-none focus:border-[#B91C1C]"
+                      >
+                        <option>Every 30 days</option>
+                        <option>Every 60 days</option>
+                        <option>Every 90 days</option>
+                      </select>
+
+                      {subscribedCadence ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSubscribe(product, variant.id, selectedCadence)
+                          }
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold bg-[#EDF3E8] text-[#234300] border border-[#C8D7BD] hover:bg-[#DFE9D6] transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700]"
+                        >
+                          <PackageCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Subscribed</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onSubscribe(product, variant.id, selectedCadence)
+                          }
+                          className="subscribe-glow-btn inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+                        >
+                          <CalendarSync className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Subscribe Now</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onSubscribe(product, variant.id)}
-                    className="subscribe-glow-btn inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-                    <span>Subscribe Now</span>
-                  </button>
+                  <p className="text-xs text-[#5A655C] tabular-nums">
+                    Auto-refill saves {formatSGD(variant.priceSGD * 0.1)} per shipment · Pause or cancel anytime
+                  </p>
                 </div>
               </div>
 

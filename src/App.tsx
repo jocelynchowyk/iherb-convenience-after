@@ -29,6 +29,7 @@ type SortOption =
 
 const CART_STORAGE_KEY = 'iherb_sg_cart_v1';
 const USER_STORAGE_KEY = 'iherb_sg_user_v1';
+const SUBS_STORAGE_KEY = 'iherb_sg_subscriptions_v1';
 
 export default function App() {
   // Navigation & Auth State
@@ -43,6 +44,16 @@ export default function App() {
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
+    }
+  });
+  const [subscriptions, setSubscriptions] = useState<
+    Record<string, { variantId: string; cadence: string }>
+  >(() => {
+    try {
+      const raw = localStorage.getItem(SUBS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
     }
   });
 
@@ -293,9 +304,10 @@ export default function App() {
 
   const handleSubscribeRedirect = (
     product: SupplementProduct,
-    variantId: string
+    variantId: string,
+    cadence: string
   ) => {
-    setPendingSubscription({ product, variantId });
+    setPendingSubscription({ product, variantId, cadence });
     setDetailProduct(null);
     setPageView('auth');
     if (window.location.hash !== '#auth') {
@@ -312,12 +324,30 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAuthSuccess = (user: AuthUser) => {
+  const handleAuthSuccess = (
+    user: AuthUser,
+    cadence?: string,
+    sub?: SubscriptionSelection | null
+  ) => {
     setCurrentUser(user);
     try {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
     } catch {
       // Ignore storage errors
+    }
+    if (sub && cadence) {
+      setSubscriptions((prev) => {
+        const next = {
+          ...prev,
+          [sub.product.id]: { variantId: sub.variantId, cadence },
+        };
+        try {
+          localStorage.setItem(SUBS_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Ignore storage errors
+        }
+        return next;
+      });
     }
   };
 
@@ -545,6 +575,7 @@ export default function App() {
                         key={product.id}
                         product={product}
                         cartQuantity={cartQuantity}
+                        subscribedCadence={subscriptions[product.id]?.cadence}
                         onOpenDetail={setDetailProduct}
                         onAddToCart={(p, variantId) =>
                           handleAddToCart(p, variantId, 1)
@@ -633,6 +664,9 @@ export default function App() {
       <ProductDetailModal
         product={detailProduct}
         cartItems={cartItems}
+        subscribedCadence={
+          detailProduct ? subscriptions[detailProduct.id]?.cadence : undefined
+        }
         onClose={() => setDetailProduct(null)}
         onAddToCart={handleAddToCart}
         onUpdateQty={handleUpdateQty}

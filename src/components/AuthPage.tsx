@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Lock, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, CalendarSync, CheckCircle2, Lock, ShieldCheck } from 'lucide-react';
 import { formatSGD, SupplementProduct } from '../data/supplements';
 import { ResilientImage } from './ResilientImage';
 
 export interface SubscriptionSelection {
   product: SupplementProduct;
   variantId: string;
+  cadence: string;
 }
 
 export interface AuthUser {
@@ -33,13 +34,21 @@ export function AuthPage({
   onSignOut,
 }: AuthPageProps) {
   const [mode, setMode] = useState<'register' | 'login'>('register');
-  const [cadence, setCadence] = useState('Every 30 days');
+  const [cadence, setCadence] = useState(
+    subscription?.cadence || 'Every 30 days'
+  );
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    if (subscription?.cadence) {
+      setCadence(subscription.cadence);
+    }
+  }, [subscription]);
 
   const selectedVariant = subscription
     ? subscription.product.variants.find((v) => v.id === subscription.variantId) ||
@@ -438,12 +447,12 @@ export function AuthPage({
 
               <div className="pt-4 border-t border-[#ECEFE9] space-y-2.5 text-xs text-[#4A554C]">
                 <div className="flex items-start gap-2.5">
-                  <RefreshCw
-                    className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5"
+                  <CalendarSync
+                    className="w-4 h-4 text-[#B91C1C] shrink-0 mt-0.5"
                     aria-hidden="true"
                   />
                   <span>
-                    Flexible schedule—skip, reschedule, or cancel online in one click.
+                    Flexible auto-refill—skip, adjust cadence, or cancel online in one click.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">

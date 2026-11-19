@@ -1,10 +1,15 @@
-import { Minus, Plus, RefreshCw, Star } from 'lucide-react';
-import { formatSGD, SupplementProduct } from '../data/supplements';
+import { CalendarSync, Minus, PackageCheck, Plus, Star } from 'lucide-react';
+import {
+  formatSGD,
+  getRecommendedDays,
+  SupplementProduct,
+} from '../data/supplements';
 import { ResilientImage } from './ResilientImage';
 
 interface ProductCardProps {
   product: SupplementProduct;
   cartQuantity: number;
+  subscribedCadence?: string;
   onOpenDetail: (product: SupplementProduct) => void;
   onAddToCart: (product: SupplementProduct, variantId: string) => void;
   onUpdateQuantity: (
@@ -12,12 +17,17 @@ interface ProductCardProps {
     variantId: string,
     delta: number
   ) => void;
-  onSubscribe: (product: SupplementProduct, variantId: string) => void;
+  onSubscribe: (
+    product: SupplementProduct,
+    variantId: string,
+    cadence: string
+  ) => void;
 }
 
 export function ProductCard({
   product,
   cartQuantity,
+  subscribedCadence,
   onOpenDetail,
   onAddToCart,
   onUpdateQuantity,
@@ -26,6 +36,9 @@ export function ProductCard({
   const defaultVariant = product.variants[0];
   const pricePerServing = defaultVariant.priceSGD / defaultVariant.servings;
   const subscribePrice = defaultVariant.priceSGD * 0.9;
+  const subscribeSavings = defaultVariant.priceSGD - subscribePrice;
+  const recommendedDays = getRecommendedDays(defaultVariant.servings);
+  const recommendedCadence = `Every ${recommendedDays} days`;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -151,27 +164,50 @@ export function ProductCard({
         </div>
 
         {/* Replicated Subscribe & Save Row */}
-        <div className="mt-3 pt-3 flex items-center justify-between gap-3 border-t border-[#F0F2EE]">
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-[17px] font-extrabold text-[#DC2626] tabular-nums">
-              {formatSGD(subscribePrice)}
-            </span>
-            <span className="text-xs font-semibold text-[#78837A] tabular-nums">
-              (10%)
-            </span>
+        <div className="mt-3 pt-3 border-t border-[#F0F2EE] space-y-1.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-[17px] font-extrabold text-[#DC2626] tabular-nums">
+                {formatSGD(subscribePrice)}
+              </span>
+              <span className="text-xs font-semibold text-[#78837A] tabular-nums">
+                (10%)
+              </span>
+            </div>
+
+            {subscribedCadence ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubscribe(product, defaultVariant.id, subscribedCadence);
+                }}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-[#EDF3E8] text-[#234300] border border-[#C8D7BD] hover:bg-[#DFE9D6] transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700]"
+              >
+                <PackageCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Subscribed</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubscribe(product, defaultVariant.id, recommendedCadence);
+                }}
+                title={`Auto-refill ${recommendedCadence.toLowerCase()} · Save ${formatSGD(subscribeSavings)} per order`}
+                className="subscribe-glow-btn inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+              >
+                <CalendarSync className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Subscribe Now</span>
+              </button>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSubscribe(product, defaultVariant.id);
-            }}
-            className="subscribe-glow-btn inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
-          >
-            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Subscribe Now</span>
-          </button>
+          <p className="text-[11px] text-[#5A655C] tabular-nums">
+            {subscribedCadence
+              ? `Active auto-refill · ${subscribedCadence}`
+              : `Auto-refill every ${recommendedDays} days · Save ${formatSGD(subscribeSavings)}`}
+          </p>
         </div>
       </div>
     </article>

@@ -630,3 +630,13 @@ export const SG_SHIPPING_FEE = 5.5;
 export function formatSGD(amount: number): string {
   return `SG$${amount.toFixed(2)}`;
 }
+
+export function getRecommendedDays(servings: number): 30 | 60 | 90 {
+  if (servings <= 45) return 30;
+  if (servings <= 75) return 60;
+  return 90;
+}
+
+export function getRecommendedCadence(servings: number): string {
+  return `Every ${getRecommendedDays(servings)} days`;
+}

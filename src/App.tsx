@@ -14,6 +14,11 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer, CartItem } from './components/CartDrawer';
 import { BrandSpotlight } from './components/BrandSpotlight';
 import { Footer } from './components/Footer';
+import {
+  AuthPage,
+  AuthUser,
+  SubscriptionSelection,
+} from './components/AuthPage';
 
 type SortOption =
   | 'bestsellers'
@@ -23,8 +28,24 @@ type SortOption =
   | 'mostreviewed';
 
 const CART_STORAGE_KEY = 'iherb_sg_cart_v1';
+const USER_STORAGE_KEY = 'iherb_sg_user_v1';
 
 export default function App() {
+  // Navigation & Auth State
+  const [pageView, setPageView] = useState<'store' | 'auth'>(() =>
+    window.location.hash === '#auth' ? 'auth' : 'store'
+  );
+  const [pendingSubscription, setPendingSubscription] =
+    useState<SubscriptionSelection | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const raw = localStorage.getItem(USER_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // Catalog Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<SupplementCategory | 'All'>('All');
@@ -79,6 +100,14 @@ export default function App() {
       // Ignore storage quota issues
     }
   }, [cartItems]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setPageView(window.location.hash === '#auth' ? 'auth' : 'store');
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // Derived facet metadata
   const { brandCounts, categoryCounts, allGoals, allDietary } = useMemo(() => {
@@ -261,6 +290,57 @@ export default function App() {
       item.product.variants[0];
     return sum + variant.priceSGD * item.quantity;
   }, 0);
+
+  const handleSubscribeRedirect = (
+    product: SupplementProduct,
+    variantId: string
+  ) => {
+    setPendingSubscription({ product, variantId });
+    setDetailProduct(null);
+    setPageView('auth');
+    if (window.location.hash !== '#auth') {
+      window.location.hash = 'auth';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToStore = () => {
+    setPageView('store');
+    if (window.location.hash === '#auth') {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem(USER_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  if (pageView === 'auth') {
+    return (
+      <AuthPage
+        subscription={pendingSubscription}
+        currentUser={currentUser}
+        onBackToStore={handleBackToStore}
+        onAuthSuccess={handleAuthSuccess}
+        onSignOut={handleSignOut}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFBF9] text-[#1C241E]">
@@ -470,6 +550,7 @@ export default function App() {
                           handleAddToCart(p, variantId, 1)
                         }
                         onUpdateQuantity={handleUpdateQty}
+                        onSubscribe={handleSubscribeRedirect}
                       />
                     );
                   })}
@@ -555,6 +636,7 @@ export default function App() {
         onClose={() => setDetailProduct(null)}
         onAddToCart={handleAddToCart}
         onUpdateQty={handleUpdateQty}
+        onSubscribe={handleSubscribeRedirect}
         customReviews={customReviews}
         onAddReview={handleAddReview}
       />

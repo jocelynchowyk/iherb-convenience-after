@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Minus, Plus, ShieldCheck, Star, Truck, X } from 'lucide-react';
+import { Minus, Plus, RefreshCw, ShieldCheck, Star, Truck, X } from 'lucide-react';
 import {
   formatSGD,
   ProductReview,
@@ -18,6 +18,7 @@ interface ProductDetailModalProps {
     quantity: number
   ) => void;
   onUpdateQty: (productId: string, variantId: string, delta: number) => void;
+  onSubscribe: (product: SupplementProduct, variantId: string) => void;
   customReviews: Record<string, ProductReview[]>;
   onAddReview: (productId: string, review: ProductReview) => void;
 }
@@ -28,6 +29,7 @@ export function ProductDetailModal({
   onClose,
   onAddToCart,
   onUpdateQty,
+  onSubscribe,
   customReviews,
   onAddReview,
 }: ProductDetailModalProps) {
@@ -283,6 +285,26 @@ export function ProductDetailModal({
                     </button>
                   </div>
                 )}
+
+                {/* Replicated Subscribe & Save Row */}
+                <div className="mt-3 pt-3 border-t border-[#ECEFE9] flex items-center justify-between gap-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display text-lg font-extrabold text-[#DC2626] tabular-nums">
+                      {formatSGD(variant.priceSGD * 0.9)}
+                    </span>
+                    <span className="text-xs font-semibold text-[#78837A] tabular-nums">
+                      (10%)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSubscribe(product, variant.id)}
+                    className="subscribe-glow-btn inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B91C1C]"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>Subscribe Now</span>
+                  </button>
+                </div>
               </div>
 
               {/* SG Fulfillment Info */}

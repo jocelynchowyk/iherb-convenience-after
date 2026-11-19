@@ -21,6 +21,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+@keyframes subscribeGlowPulse {
+  0%, 100% {
+    opacity: 0.38;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.subscribe-glow-btn {
+  position: relative;
+}
+
+.subscribe-glow-btn::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 14px 2px rgba(185, 28, 28, 0.48);
+  pointer-events: none;
+  animation: subscribeGlowPulse 2.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

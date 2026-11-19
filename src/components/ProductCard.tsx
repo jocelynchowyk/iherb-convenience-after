@@ -1,28 +1,32 @@
-import { useState } from 'react';
-import { Check, Plus, Star } from 'lucide-react';
+import { Minus, Plus, Star } from 'lucide-react';
 import { formatSGD, SupplementProduct } from '../data/supplements';
 import { ResilientImage } from './ResilientImage';
 
 interface ProductCardProps {
   product: SupplementProduct;
+  cartQuantity: number;
   onOpenDetail: (product: SupplementProduct) => void;
   onAddToCart: (product: SupplementProduct, variantId: string) => void;
+  onUpdateQuantity: (
+    productId: string,
+    variantId: string,
+    delta: number
+  ) => void;
 }
 
 export function ProductCard({
   product,
+  cartQuantity,
   onOpenDetail,
   onAddToCart,
+  onUpdateQuantity,
 }: ProductCardProps) {
-  const [justAdded, setJustAdded] = useState(false);
   const defaultVariant = product.variants[0];
   const pricePerServing = defaultVariant.priceSGD / defaultVariant.servings;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     onAddToCart(product, defaultVariant.id);
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1200);
   };
 
   return (
@@ -98,27 +102,49 @@ export function ProductCard({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleQuickAdd}
-            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700] ${
-              justAdded
-                ? 'bg-[#234300] text-white'
-                : 'bg-[#3D7700] hover:bg-[#315F00] text-white'
-            }`}
-          >
-            {justAdded ? (
-              <>
-                <Check className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Added</span>
-              </>
-            ) : (
-              <>
+          {cartQuantity === 0 ? (
+            <button
+              type="button"
+              onClick={handleQuickAdd}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-[#3D7700] hover:bg-[#315F00] text-white transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700]"
+            >
+              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Add to Cart</span>
+            </button>
+          ) : (
+            <div
+              role="group"
+              aria-label={`Quantity in cart for ${product.name}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center min-h-[40px] rounded-lg bg-[#3D7700] text-white overflow-hidden shrink-0"
+            >
+              <button
+                type="button"
+                aria-label={`Decrease quantity of ${product.name}`}
+                onClick={() =>
+                  onUpdateQuantity(product.id, defaultVariant.id, -1)
+                }
+                className="w-10 min-h-[40px] flex items-center justify-center hover:bg-[#315F00] transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+              >
+                <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+              <span className="min-w-[28px] px-1.5 text-center text-xs font-semibold tabular-nums">
+                {cartQuantity}
+              </span>
+              <button
+                type="button"
+                aria-label={`Increase quantity of ${product.name}`}
+                onClick={() =>
+                  cartQuantity < 20 &&
+                  onUpdateQuantity(product.id, defaultVariant.id, 1)
+                }
+                disabled={cartQuantity >= 20}
+                className="w-10 min-h-[40px] flex items-center justify-center hover:bg-[#315F00] disabled:opacity-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+              >
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Add to Cart</span>
-              </>
-            )}
-          </button>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </article>

@@ -452,16 +452,27 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onOpenDetail={setDetailProduct}
-                      onAddToCart={(p, variantId) =>
-                        handleAddToCart(p, variantId, 1)
-                      }
-                    />
-                  ))}
+                  {filteredProducts.map((product) => {
+                    const defaultVariantId = product.variants[0].id;
+                    const cartQuantity =
+                      cartItems.find(
+                        (item) =>
+                          item.product.id === product.id &&
+                          item.variantId === defaultVariantId
+                      )?.quantity || 0;
+                    return (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        cartQuantity={cartQuantity}
+                        onOpenDetail={setDetailProduct}
+                        onAddToCart={(p, variantId) =>
+                          handleAddToCart(p, variantId, 1)
+                        }
+                        onUpdateQuantity={handleUpdateQty}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -540,8 +551,10 @@ export default function App() {
 
       <ProductDetailModal
         product={detailProduct}
+        cartItems={cartItems}
         onClose={() => setDetailProduct(null)}
         onAddToCart={handleAddToCart}
+        onUpdateQty={handleUpdateQty}
         customReviews={customReviews}
         onAddReview={handleAddReview}
       />

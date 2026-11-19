@@ -1,35 +1,38 @@
 import { useEffect, useState } from 'react';
-import { Check, Minus, Plus, ShieldCheck, Star, Truck, X } from 'lucide-react';
+import { Minus, Plus, ShieldCheck, Star, Truck, X } from 'lucide-react';
 import {
   formatSGD,
   ProductReview,
   SupplementProduct,
 } from '../data/supplements';
+import { CartItem } from './CartDrawer';
 import { ResilientImage } from './ResilientImage';
 
 interface ProductDetailModalProps {
   product: SupplementProduct | null;
+  cartItems: CartItem[];
   onClose: () => void;
   onAddToCart: (
     product: SupplementProduct,
     variantId: string,
     quantity: number
   ) => void;
+  onUpdateQty: (productId: string, variantId: string, delta: number) => void;
   customReviews: Record<string, ProductReview[]>;
   onAddReview: (productId: string, review: ProductReview) => void;
 }
 
 export function ProductDetailModal({
   product,
+  cartItems,
   onClose,
   onAddToCart,
+  onUpdateQty,
   customReviews,
   onAddReview,
 }: ProductDetailModalProps) {
   const [selectedVariantId, setSelectedVariantId] = useState<string>('');
-  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'facts' | 'usage' | 'reviews'>('facts');
-  const [addedFeedback, setAddedFeedback] = useState(false);
 
   // Review composer state
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -41,9 +44,7 @@ export function ProductDetailModal({
   useEffect(() => {
     if (product) {
       setSelectedVariantId(product.variants[0].id);
-      setQuantity(1);
       setActiveTab('facts');
-      setAddedFeedback(false);
       setShowReviewForm(false);
     }
   }, [product]);
@@ -63,15 +64,17 @@ export function ProductDetailModal({
     product.variants.find((v) => v.id === selectedVariantId) ||
     product.variants[0];
   const pricePerServing = variant.priceSGD / variant.servings;
+  const cartQty =
+    cartItems.find(
+      (item) => item.product.id === product.id && item.variantId === variant.id
+    )?.quantity || 0;
   const allReviews = [
     ...(customReviews[product.id] || []),
     ...product.reviews,
   ];
 
   const handleAdd = () => {
-    onAddToCart(product, variant.id, quantity);
-    setAddedFeedback(true);
-    window.setTimeout(() => setAddedFeedback(false), 1500);
+    onAddToCart(product, variant.id, 1);
   };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
@@ -237,50 +240,49 @@ export function ProductDetailModal({
                 </div>
               </div>
 
-              {/* Quantity Stepper & Primary Buy CTA */}
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <div className="inline-flex items-center border border-[#D4DBD0] rounded-lg bg-[#FAFBF9]">
+              {/* Primary Buy CTA -> Transforms into Quantity Stepper once added */}
+              <div className="pt-1">
+                {cartQty === 0 ? (
                   <button
                     type="button"
-                    aria-label="Decrease quantity"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-10 h-11 flex items-center justify-center text-[#3F4A41] hover:text-[#1C241E] transition-colors"
-                  >
-                    <Minus className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                  <span className="w-10 text-center text-sm font-semibold tabular-nums text-[#1C241E]">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Increase quantity"
-                    onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                    className="w-10 h-11 flex items-center justify-center text-[#3F4A41] hover:text-[#1C241E] transition-colors"
+                    onClick={handleAdd}
+                    className="w-full min-h-[44px] px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#3D7700] hover:bg-[#315F00] transition-colors inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700]"
                   >
                     <Plus className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleAdd}
-                  className={`flex-1 min-w-[200px] min-h-[44px] px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors inline-flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3D7700] ${
-                    addedFeedback
-                      ? 'bg-[#234300]'
-                      : 'bg-[#3D7700] hover:bg-[#315F00]'
-                  }`}
-                >
-                  {addedFeedback ? (
-                    <>
-                      <Check className="w-4 h-4" aria-hidden="true" />
-                      <span>Added to Cart</span>
-                    </>
-                  ) : (
                     <span className="tabular-nums">
-                      Add to Cart · {formatSGD(variant.priceSGD * quantity)}
+                      Add to Cart · {formatSGD(variant.priceSGD)}
                     </span>
-                  )}
-                </button>
+                  </button>
+                ) : (
+                  <div
+                    role="group"
+                    aria-label={`Cart quantity for ${product.name}`}
+                    className="w-full min-h-[44px] rounded-lg bg-[#3D7700] text-white flex items-center justify-between overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      aria-label={`Decrease ${product.name} quantity in cart`}
+                      onClick={() => onUpdateQty(product.id, variant.id, -1)}
+                      className="w-14 min-h-[44px] flex items-center justify-center hover:bg-[#315F00] transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+                    >
+                      <Minus className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                    <span className="px-3 text-sm font-semibold tabular-nums">
+                      {cartQty} in Cart · {formatSGD(variant.priceSGD * cartQty)}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Increase ${product.name} quantity in cart`}
+                      onClick={() =>
+                        cartQty < 20 && onUpdateQty(product.id, variant.id, 1)
+                      }
+                      disabled={cartQty >= 20}
+                      className="w-14 min-h-[44px] flex items-center justify-center hover:bg-[#315F00] disabled:opacity-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+                    >
+                      <Plus className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* SG Fulfillment Info */}
